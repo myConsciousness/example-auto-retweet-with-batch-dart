@@ -7,12 +7,7 @@ void main(List<String> args) => BatchApplication(
       args: _argParser.parse(args),
       onLoadArgs: _onLoadArgs,
     )
-      ..addJob(Job(
-        name: 'Auto Like Tweet Job',
-        schedule: CronParser(value: '*/1 * * * *'), // Will be executed hourly.
-      )..nextStep(
-          Step(name: 'Auto Like Tweet Step')..registerTask(AutoRetweetTask()),
-        ))
+      ..nextSchedule(AutoRetweetJob())
       ..run();
 
 ArgParser get _argParser => ArgParser()
@@ -38,6 +33,19 @@ Function(
       // This instance can be used from anywhere in this batch application as a singleton instance.
       addSharedParameters(key: 'twitterApi', value: twitter);
     };
+
+class AutoRetweetJob implements ScheduledJobBuilder {
+  @override
+  ScheduledJob build() => ScheduledJob(
+        name: 'name',
+        schedule: CronParser('* */1 * * *'), // Will be executed hourly
+      )..nextStep(
+          Step(
+            name: 'Auto Retweet Step',
+            task: AutoRetweetTask(),
+          ),
+        );
+}
 
 class AutoRetweetTask extends Task<AutoRetweetTask> {
   @override
