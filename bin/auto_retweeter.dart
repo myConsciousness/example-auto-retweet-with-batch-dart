@@ -1,21 +1,22 @@
 import 'package:batch/batch.dart';
 import 'package:dart_twitter_api/twitter_api.dart';
 
-void main(List<String> args) => BatchApplication()
-  ..nextSchedule(AutoRetweetJob())
-  ..run();
+void main(List<String> args) => BatchApplication(
+      jobs: [AutoRetweetJob()],
+    )..run();
 
 class AutoRetweetJob implements ScheduledJobBuilder {
   @override
   ScheduledJob build() => ScheduledJob(
         name: 'name',
         schedule: CronParser('* */1 * * *'), // Will be executed hourly
-      )..nextStep(
+        steps: [
           Step(
             name: 'Auto Retweet Step',
             task: AutoRetweetTask(),
           ),
-        );
+        ],
+      );
 }
 
 class AutoRetweetTask extends Task<AutoRetweetTask> {
