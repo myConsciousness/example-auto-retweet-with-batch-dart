@@ -1,22 +1,26 @@
 import 'package:batch/batch.dart';
-import 'package:dart_twitter_api/twitter_api.dart';
+import 'package:twitter_api_v2/twitter_api_v2.dart';
 
 /// Run this application with command:
-/// `dart run bin/auto_retweeter_with_args.dart -k YOUR_CONSUMER_KEY -c YOUR_CONSUMER_SECRET -t YOUR_TOKEN -s YOUR_SECRET`
+/// `dart run bin/auto_retweeter_with_args.dart -b YOUR_BEARER_TOKEN -k YOUR_CONSUMER_KEY -c YOUR_CONSUMER_SECRET -t YOUR_TOKEN -s YOUR_SECRET`
 void main(List<String> args) => BatchApplication(
       args: args,
       argsConfigBuilder: (parser) => parser
+        ..addOption('apiBearerToken', abbr: 'b')
         ..addOption('apiConsumerKey', abbr: 'k')
         ..addOption('apiConsumerSecret', abbr: 'c')
         ..addOption('apiToken', abbr: 't')
         ..addOption('apiSecret', abbr: 's'),
       onLoadArgs: (args) {
         final twitter = TwitterApi(
-          client: TwitterClient(
+          bearerToken: args['apiBearerToken'],
+
+          // Or you can use OAuth 1.0a tokens.
+          oauthTokens: OAuthTokens(
             consumerKey: args['apiConsumerKey'],
             consumerSecret: args['apiConsumerSecret'],
-            token: args['apiToken'],
-            secret: args['apiSecret'],
+            accessToken: args['apiToken'],
+            accessTokenSecret: args['apiSecret'],
           ),
         );
 
@@ -48,19 +52,24 @@ class AutoRetweetTask extends Task<AutoRetweetTask> {
     final TwitterApi twitter = context.sharedParameters['twitterApi'];
 
     try {
+      // You need your user id to create retweet.
+      final me = await twitter.usersService.lookupMe();
       // Search for tweets
-      final tweets =
-          await twitter.tweetSearchService.searchTweets(q: '#coding');
+      final tweets = await twitter.tweetsService.searchRecent(query: '#coding');
 
       int count = 0;
-      for (final status in tweets.statuses!) {
+      for (final tweet in tweets.data) {
         if (count >= 10) {
           // Stop after 10 auto-retweets
           return;
         }
 
         // Auto retweet
-        await twitter.tweetService.retweet(id: status.idStr!);
+        await twitter.tweetsService.createRetweet(
+          userId: me.data.id,
+          tweetId: tweet.id,
+        );
+
         count++;
       }
     } catch (e, s) {
